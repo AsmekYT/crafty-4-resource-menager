@@ -1,0 +1,208 @@
+{% extends ../base.html %}
+
+{% block title %}Crafty Controller - Resource Manager{% end %}
+
+{% block content %}
+<div class="content-wrapper">
+
+    <div class="row page-title-header">
+        <div class="col-12">
+            <div class="page-header">
+                <h4 class="page-title">
+                    Resource Manager - {{ data['server_stats']['server_id']['server_name'] }}
+                    <br />
+                    <small>Powered by Modrinth</small>
+                </h4>
+            </div>
+        </div>
+    </div>
+
+    {% include "parts/details_stats.html" %}
+
+    <div class="row">
+        <div class="col-sm-12 grid-margin">
+            <div class="card">
+                <div class="card-body pt-0">
+
+                    <span class="d-none d-sm-block">
+                        {% include "parts/server_controls_list.html" %}
+                    </span>
+                    <span class="d-block d-sm-none">
+                        {% include "parts/m_server_controls_list.html" %}
+                    </span>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <br>
+
+                            {% if data.get('search_error') %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> {{ data['search_error'] }}
+                            </div>
+                            {% end %}
+
+                            {% if request.query_arguments.get('status') and request.query_arguments.get('status')[0].decode() == 'success' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Successfully downloaded and installed!
+                                <br>
+                                <small>Restart the server to apply changes.</small>
+                            </div>
+                            {% end %}
+
+                            {% if request.query_arguments.get('error') and request.query_arguments.get('error')[0].decode() == 'NoCompatibleVersionFound' %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> No compatible version found. Try changing filters.
+                            </div>
+                            {% end %}
+
+                            {% if request.query_arguments.get('error') and request.query_arguments.get('error')[0].decode() == 'InstallFailed' %}
+                            <div class="alert alert-danger">
+                                <i class="fas fa-times-circle"></i> Installation failed. Check Crafty logs for details.
+                            </div>
+                            {% end %}
+
+                            <form method="GET">
+                                <input type="hidden" name="id" value="{{ data['server_id'] }}">
+                                <input type="hidden" name="subpage" value="resource_manager">
+
+                                <div class="form-row align-items-end">
+                                    <div class="col-md-5 col-sm-12 form-group">
+                                        <label>Search Query</label>
+                                        <div class="input-group">
+                                            <div class="input-group-prepend">
+                                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                            </div>
+                                            <input type="text" name="q" class="form-control"
+                                                   value="{{ data.get('modrinth_query', '') }}"
+                                                   placeholder="e.g. Sodium, WorldEdit...">
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-2 col-sm-6 form-group">
+                                        <label>Type</label>
+                                        <select name="type" class="form-control">
+                                            <option value="mod" {% if data.get('current_type') == 'mod' %}selected{% end %}>Mod</option>
+                                            <option value="plugin" {% if data.get('current_type') == 'plugin' %}selected{% end %}>Plugin</option>
+                                            <option value="resourcepack" {% if data.get('current_type') == 'resourcepack' %}selected{% end %}>Resource Pack</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-2 col-sm-6 form-group">
+                                        <label>Loader</label>
+                                        <select name="loader" class="form-control">
+                                            <option value="" {% if not data.get('current_loader') %}selected{% end %}>Any</option>
+                                            <option value="fabric" {% if data.get('current_loader') == 'fabric' %}selected{% end %}>Fabric</option>
+                                            <option value="forge" {% if data.get('current_loader') == 'forge' %}selected{% end %}>Forge</option>
+                                            <option value="paper" {% if data.get('current_loader') == 'paper' %}selected{% end %}>Paper/Spigot</option>
+                                            <option value="quilt" {% if data.get('current_loader') == 'quilt' %}selected{% end %}>Quilt</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-2 col-sm-6 form-group">
+                                        <label>Game Version</label>
+                                        <input type="text" name="version" class="form-control"
+                                               value="{{ data.get('current_version', '') }}" placeholder="e.g. 1.20.1">
+                                    </div>
+
+                                    <div class="col-md-1 col-sm-6 form-group">
+                                        <button type="submit" class="btn btn-primary btn-block">Find</button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <hr>
+
+                            {% if data.get('modrinth_results') %}
+                            <div class="row">
+                                {% for res in data['modrinth_results'] %}
+                                <div class="col-xl-4 col-lg-6 col-md-6 col-sm-12 mb-4">
+                                    <div class="card border-secondary h-100 shadow-sm">
+                                        <div class="card-body d-flex flex-column">
+                                            <div class="media mb-3">
+                                                {% if res.get('icon_url') %}
+                                                <img src="{{ res['icon_url'] }}" width="64" height="64" class="mr-3 rounded border" alt="icon">
+                                                {% else %}
+                                                <div class="mr-3 rounded border d-flex align-items-center justify-content-center bg-light" style="width:64px;height:64px;">
+                                                    <i class="fas fa-cube fa-2x text-muted"></i>
+                                                </div>
+                                                {% end %}
+                                                <div class="media-body overflow-hidden">
+                                                    <h5 class="mt-0 text-truncate" title="{{ res['title'] }}">{{ res['title'] }}</h5>
+                                                    <p class="text-muted small mb-0">by {{ res['author'] }}</p>
+                                                    <div class="mt-1">
+                                                        <span class="badge badge-info">{{ res['project_type'].capitalize() }}</span>
+                                                        <span class="badge badge-secondary text-black" title="Downloads">
+                                                            <i class="fas fa-download text-black"></i> {{ res['downloads'] }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <p class="card-text small text-muted flex-grow-1">
+                                                {% if len(res['description']) > 120 %}
+                                                {{ res['description'][:120] }}...
+                                                {% else %}
+                                                {{ res['description'] }}
+                                                {% end %}
+                                            </p>
+
+                                            <div class="mt-3">
+                                                <form method="POST">
+                                                    {% raw xsrf_form_html() %}
+                                                    <input type="hidden" name="id" value="{{ data['server_id'] }}">
+                                                    <input type="hidden" name="subpage" value="resource_manager">
+                                                    <input type="hidden" name="action" value="install">
+
+                                                    <input type="hidden" name="project_id" value="{{ res['project_id'] }}">
+                                                    <input type="hidden" name="resource_type" value="{{ data.get('current_type', 'mod') }}">
+                                                    <input type="hidden" name="game_version" value="{{ data.get('current_version', '') }}">
+                                                    <input type="hidden" name="loader" value="{{ data.get('current_loader', '') }}">
+                                                    <input type="hidden" name="q_backup" value="{{ data.get('modrinth_query', '') }}">
+
+                                                    <button type="submit" class="btn btn-success btn-sm btn-block" onclick="return confirm('Do you want to download and install this resource?');">
+                                                        <i class="fas fa-cloud-download-alt"></i> Install
+                                                        {% if data.get('current_version') %}
+                                                        <span class="text-dark font-weight-bold">for {{ data['current_version'] }}</span>
+                                                        {% end %}
+                                                    </button>
+                                                </form>
+
+                                                <a href="https://modrinth.com/project/{{ res['slug'] }}" target="_blank" class="btn btn-secondary text-black btn-sm btn-block mt-2">
+                                                    <i class="fas fa-external-link-alt"></i> View Page
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% end %}
+                            </div>
+                            {% else %}
+                            {% if data.get('modrinth_query') %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                <h4>No results found.</h4>
+                            </div>
+                            {% else %}
+                            <div class="text-center py-5">
+                                <i class="fas fa-cubes fa-3x text-info mb-3"></i>
+                                <h4>Resource Manager</h4>
+                                <p class="text-muted">Enter a search term above to find Mods or Plugins.</p>
+                                <small class="text-muted">The manager automatically detects if you need Mods or Plugins based on your server folders.</small>
+                            </div>
+                            {% end %}
+                            {% end %}
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% end %}
+
+{% block js %}
+<script>
+    console.log("Resource Manager UI Loaded");
+</script>
+{% end %}
