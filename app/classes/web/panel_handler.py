@@ -38,6 +38,7 @@ SUBPAGE_PERMS = {
 
         server_id = self.check_server_id()
         if not server_id:
+            logger.error("Error: Server ID not found!!!")
             return
 
         subpage = self.get_argument("subpage", "")
@@ -47,7 +48,7 @@ SUBPAGE_PERMS = {
 
             if action == "install":
                 project_id = self.get_argument("project_id")
-                resource_type = self.get_argument("resource_type", "mod")
+                resource_type = self.get_argument("resource_type", "plugin")
                 game_version = self.get_argument("game_version", "")
                 loader = self.get_argument("loader", "")
 
@@ -79,11 +80,9 @@ SUBPAGE_PERMS = {
                         server_data = self.controller.servers.get_server_data_by_id(server_id)
                         server_path = server_data['path']
 
-                        target_dir = "mods"
-                        if resource_type == "plugin":
-                            target_dir = "plugins"
-                        elif resource_type == "shader":
-                            target_dir = "shaderpacks"
+                        target_dir = "plugins"
+                        if resource_type == "mod":
+                            target_dir = "mods"
                         elif resource_type == "resourcepack":
                             target_dir = "resourcepacks"
 
@@ -91,7 +90,7 @@ SUBPAGE_PERMS = {
                         os.makedirs(save_dir, exist_ok=True)
                         save_path = os.path.join(save_dir, filename)
 
-                        logger.info(f"Resource Manager: Downloading {filename} to {save_path}")
+                        logger.info(f"RM: Downloading {filename} to {save_path}")
 
                         async with client.stream("GET", download_url) as response:
                             response.raise_for_status()
@@ -104,7 +103,7 @@ SUBPAGE_PERMS = {
                         return
 
                 except Exception as e:
-                    logger.error(f"Resource Manager Install Failed: {e}")
+                    logger.error(f"RM Installation of {resource_type} Failed: {e}")
                     self.redirect(
                         f"/panel/server_detail?id={server_id}&subpage=resource_manager&q={q_backup}&error=InstallFailed")
                     return
